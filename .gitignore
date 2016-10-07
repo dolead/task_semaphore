@@ -1,0 +1,8 @@
+.coveragerc
+.coverage
+.DS_Store
+.idea
+*.pyc
+*.swp
+venv
+
