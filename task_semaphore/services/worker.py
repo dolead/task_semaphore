@@ -5,7 +5,7 @@ class Worker:
     # all configured backends
     backends = []
     # link to parent (scheduler)
-    scheduler = []
+    scheduler = None
     # related to current task
     current_backend = None
     current_task = None
