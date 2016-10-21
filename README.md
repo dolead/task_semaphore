@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/dolead/task_semaphore.svg?branch=master)](https://travis-ci.org/dolead/task_semaphore)
+
 # Dolead Task Semaphores
 
 The point of the Dolead Task semaphores is to control the number of tasks running in parralelle when it's difficult to control them directly (eg, a celery workflow that spawns a number of celery tasks you can't really control).
