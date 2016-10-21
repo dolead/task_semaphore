@@ -1,8 +1,9 @@
 .coveragerc
+coverage.xml
 .coverage
 .DS_Store
 .idea
 *.pyc
 *.swp
 venv
-
+.cache/
