@@ -21,6 +21,12 @@ class StorageTstMixin:
                    'slot_id': 'sid_1'}]
         sched_before = Scheduler(name='test', storage=self._storage()). \
             init_from_config(config)
+        slot = sched_before.slots['sid_1']
+        assert slot.current_backend is None
+        assert slot.current_task_id is None
+        assert slot._last_keepalive_at is None
+        assert slot._started_at is None
+
         sched_before.schedule()
 
         sched = Scheduler(name='test', storage=self._storage()). \
