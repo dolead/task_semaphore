@@ -1,20 +1,19 @@
 import time
 import unittest
 
-from .. import AbstractBackend, Scheduler
+from .. import AbstractPrioBackend, Scheduler
 from .fixtures import (ExampleScheduleBackend, ExampleScheduleEmptyBackend,
-                       ExampleScheduleSlot)
+                       ExampleScheduleBackend)
 
 
 class BaseTestCase(unittest.TestCase):
 
     def get_basic_config(self):
         return [{'backends': ['AbstractBackend'],
-                 'slot_cls': 'AbstractSlot',
                  'slot_id': 'sid_1'}]
 
     def test_load_and_dump_config(self):
-        sched = Scheduler().load(self.get_basic_config())
+        sched = Scheduler(storage='RedisStorage').load(self.get_basic_config())
         assert len(sched.slots) == 1
         assert 'sid_1' in sched.slots
         slot = sched.slots['sid_1']
@@ -24,7 +23,7 @@ class BaseTestCase(unittest.TestCase):
 
     def test_load_and_dump_config_inst(self):
         config = self.get_basic_config()
-        config[0]['backends'] = [AbstractBackend()]
+        config[0]['backends'] = [AbstractPrioBackend()]
         sched = Scheduler().load(config)
         assert len(sched.slots) == 1
         assert 'sid_1' in sched.slots
@@ -42,7 +41,7 @@ class BaseTestCase(unittest.TestCase):
 
         sched.schedule()
         slot = sched.slots['sid_1']
-        assert isinstance(slot, ExampleScheduleSlot)
+        assert isinstance(slot, ExampleScheduleBackend)
         backends = [slot._backends[bk_name]
                     for bk_name in slot._backends_names]
         assert isinstance(backends[0], ExampleScheduleEmptyBackend)
@@ -63,7 +62,25 @@ class BaseTestCase(unittest.TestCase):
                   'slot_id': 'sid_1'}])
         sched.schedule()
         slot = sched.slots['sid_1']
-        assert isinstance(slot, ExampleScheduleSlot)
+        assert isinstance(slot, ExampleScheduleBackend)
+        backends = [slot._backends[bk_name]
+                    for bk_name in slot._backends_names]
+        assert isinstance(backends[0], ExampleScheduleBackend)
+        assert isinstance(backends[1], ExampleScheduleEmptyBackend)
+        assert slot.current_backend is backends[0]
+        assert isinstance(slot.current_backend, ExampleScheduleBackend)
+        assert backends[0].polled == 1
+        assert backends[0].started == 1
+        assert backends[1].polled == 0
+        assert backends[1].started == 0
+        assert slot.current_task_id == 'SELECTED_TASK_ID_1'
+
+    def test_multiple_slots(self):
+        sched = self._scheduler_with_multiple_slots()
+        sched.schedule()
+        import ipdb; ipdb.set_trace()
+        slot = sched.slots['sid_1']
+        assert isinstance(slot, ExampleScheduleBackend)
         backends = [slot._backends[bk_name]
                     for bk_name in slot._backends_names]
         assert isinstance(backends[0], ExampleScheduleBackend)
@@ -83,7 +100,7 @@ class BaseTestCase(unittest.TestCase):
                   'slot_id': 'sid_1'}])
         sched.schedule()
         slot = sched.slots['sid_1']
-        assert isinstance(slot, ExampleScheduleSlot)
+        assert isinstance(slot, ExampleScheduleBackend)
         backends = [slot._backends[bk_name]
                     for bk_name in slot._backends_names]
         assert isinstance(backends[0], ExampleScheduleEmptyBackend)
@@ -236,3 +253,29 @@ class BaseTestCase(unittest.TestCase):
         # start excepted, the slot is freed
         assert slot.current_backend is None
         assert slot.current_task_id is None
+
+    def test_slots_status(self):
+        sched = self._scheduler_with_multiple_slots()
+        sched.schedule()
+
+        slots_status = sched.slots_status()
+        import ipdb; ipdb.set_trace()
+
+    def test_backends_status(self):
+        sched = self._scheduler_with_multiple_slots()
+        sched.schedule()
+
+        backends_status = sched.backends_status()
+        import ipdb; ipdb.set_trace()
+
+    def _scheduler_with_multiple_slots(self):
+        return Scheduler().load(
+            [{'backends': ['ExampleScheduleBackend',
+                           'ExampleScheduleEmptyBackend'],
+              'slot_cls': 'ExampleScheduleSlot',
+              'slot_id': 'sid_1'},
+             {'backends': ['ExampleScheduleEmptyBackend',
+                           'ExampleScheduleBackend'],
+              'slot_cls': 'ExampleScheduleSlot',
+              'slot_id': 'sid_2'}
+             ])

@@ -1,15 +1,15 @@
-from .. import AbstractBackend, AbstractSlot
+from .. import AbstractPrioBackend, AbstractSlot
 
 
-class ExampleScheduleSlot(AbstractSlot):
-    def write(self):
+class ExampleScheduleBackend(AbstractSlot):
+    def save(self):
         pass
 
-    def read(self):
+    def reload(self):
         pass
 
 
-class ExampleBackend(AbstractBackend):
+class ExampleBackend(AbstractPrioBackend):
     def __init__(self):
         self.polled, self.started, self.stopped = 0, 0, 0
         self.timeouted, self.keptalive, self.error_handled = 0, 0, 0

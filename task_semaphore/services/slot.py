@@ -3,15 +3,23 @@ from datetime import datetime, timedelta
 
 from ..exceptions import TaskTimeoutError, WrongTaskIdError
 from ..registry import REGISTRY, TaskSemaphoreMetaRegisterer
-from .backend import AbstractBackend
+from .prio_backend import AbstractPrioBackend
+from ..utils.plainattrs import PlainAttrs
 
 logger = logging.getLogger(__name__)
 
 
-class AbstractSlot(metaclass=TaskSemaphoreMetaRegisterer):
+class AbstractSlot(metaclass=TaskSemaphoreMetaRegisterer, PlainAttrs):
 
-    def __init__(self, id_, backends=None, timeout_after=60):
+    scheduler = None
+
+    KEYS_TO_SERIALIZE = ('current_task_id',
+                         'backends_names', 'current_backend_name',
+                         'started_at', 'last_keepalive_at')
+
+    def __init__(self, id_, scheduler, backends=None, timeout_after=60):
         self.id_ = id_
+        self.scheduler = scheduler
         self.timeout_after = timedelta(minutes=timeout_after)
 
         # internal value init
@@ -38,7 +46,7 @@ class AbstractSlot(metaclass=TaskSemaphoreMetaRegisterer):
                     "TaskSemaphore: %r is not a registered backend!" % backend
             BackendCls = REGISTRY[backend]
             backend = BackendCls()
-        assert isinstance(backend, AbstractBackend), "TaskSemaphore: " \
+        assert isinstance(backend, AbstractPrioBackend), "TaskSemaphore: " \
                 "%r is no AbstractBackend subclass instance" % backend
         backend_name = backend.get_name()
         self._backends_names.append(backend_name)
@@ -46,18 +54,6 @@ class AbstractSlot(metaclass=TaskSemaphoreMetaRegisterer):
 
     def __repr__(self):
         return "<%s id=%r>" % (self.get_name(), self.id_)
-
-    def write(self):  # pragma: no cover
-        """Write current state to the database"""
-        raise NotImplementedError()
-
-    def read(self):  # pragma: no cover
-        """Reads from a database the state of that slot based on its self.id
-
-        Should set self._current_task, self._current_backend_name,
-        self._started_at, and self._last_keepalive_at
-        """
-        raise NotImplementedError()
 
     def poll(self):
         logger.info('polling for slot %r', self)
@@ -130,7 +126,7 @@ class AbstractSlot(metaclass=TaskSemaphoreMetaRegisterer):
             raise WrongTaskIdError(self, unique_task_id)
         self._last_keepalive_at = datetime.utcnow()
         self.backend_method_wrapper('keepalive_callback')
-        self.write()
+        self.save()
 
     def start(self, unique_task_id, backend):
         self._current_task_id = unique_task_id
@@ -138,14 +134,14 @@ class AbstractSlot(metaclass=TaskSemaphoreMetaRegisterer):
         self._started_at = datetime.utcnow()
         self._last_keepalive_at = datetime.utcnow()
         self.backend_method_wrapper('start_callback')
-        self.write()
+        self.save()
 
     def _free_slot(self):
         self._current_task_id = None
         self._current_backend_name = None
         self._started_at = None
         self._last_keepalive_at = None
-        self.write()
+        self.save()
 
     def stop(self, unique_task_id):
         if self.current_task_id != unique_task_id:
@@ -153,38 +149,12 @@ class AbstractSlot(metaclass=TaskSemaphoreMetaRegisterer):
         self.backend_method_wrapper('stop_callback')
         self._free_slot()
 
+    @property
+    def _storage_context(self):
+        return [self.scheduler.id_, "slot", self.id_]
 
-class RedisSlot(AbstractSlot):
-    """Slot with a redis backend"""
+    def save(self):  # pragma: no cover
+        self.storage.save(self._storage_context, self)
 
-    def __init__(self, redis_c, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.redis_c = redis_c
-        self._db_datas = {}
-        self._keys = ('current_task_id', 'current_backend_name',
-                      'started_at', 'last_keepalive_at')
-
-    def _to_db_key(self, subkey):
-        return "task_semaphore.slots.%s.%s" % (self.id_, subkey)
-
-    def _to_db_value(self, subkey):
-        value = getattr(self, "_%s" % subkey)
-        if hasattr(value, 'isoformat'):
-            return value.isoformat()
-        elif value:
-            return str(value)
-        return None
-
-    def write(self):
-        return self.redis_c.mset({self._to_db_key(key): self._to_db_value(key)
-                                  for key in self._keys})
-
-    def read(self):
-        rkeys = [self._to_db_key(key) for key in self._keys]
-        raw = dict(zip(self._keys,
-                       [val.decode('utf8') if hasattr(val, 'decode') else val
-                        for val in self.redis_c.mget(rkeys)]))
-        for key, value in raw.items():
-            if key in {"started_at", "last_keepalive_at"}:
-                value = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f")
-            setattr(self, "_%s" % key, value)
+    def reload(self):  # pragma: no cover
+        self.storage.reload(self._storage_context, self)

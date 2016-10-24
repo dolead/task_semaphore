@@ -1,10 +1,10 @@
 import logging
-from ..registry import TaskSemaphoreMetaRegisterer
 
 logger = logging.getLogger(__name__)
 
 
-class AbstractBackend(metaclass=TaskSemaphoreMetaRegisterer):
+class AbstractPrioBackend:
+    """Logic to priorize the next task to be executed"""
 
     @classmethod
     def get_name(cls):
