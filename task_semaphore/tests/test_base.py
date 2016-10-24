@@ -8,6 +8,7 @@ from .fixtures import (ExampleScheduleEmptyBackend,
 
 
 class BaseTestCase(unittest.TestCase):
+    """Integration test for scheduler"""
 
     def get_basic_config(self):
         return [{'backends': ['AbstractPrioBackend'],

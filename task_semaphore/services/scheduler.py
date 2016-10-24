@@ -23,9 +23,11 @@ class Scheduler:
     def init_from_config(self, config):
         # TODO: config should be auto-loaded from db
         self.config = config
-        for slot in config:
-            self.add_slot(slot['slot_id'], slot['backends'],
-                          slot.get('slot_kwargs'))
+        for slot_config in config:
+            slot = self.add_slot(slot_config['slot_id'],
+                                 slot_config['backends'],
+                                 slot_config.get('slot_kwargs'))
+            slot.reload()
         return self
 
     def schedule(self):
@@ -69,6 +71,7 @@ class Scheduler:
         self.slots[id_] = AbstractSlot(id_=id_, scheduler=self, **slot_kwargs)
         for backend in backends:
             self.slots[id_].add_backend(backend)
+        return self.slots[id_]
 
     @property
     def _all_backends(self):

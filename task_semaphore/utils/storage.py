@@ -18,7 +18,7 @@ class PickleSerializer:
 
     def loads(self, attrs_s):
         """From string"""
-        return pickle.loads(attrs_s)
+        return pickle.loads(attrs_s) if attrs_s else None
 
 
 class RedisStorage(AbstractStorage, PickleSerializer):
@@ -35,8 +35,8 @@ class RedisStorage(AbstractStorage, PickleSerializer):
 
     def reload(self, context, model):
         serialized = self.redis_c.get(self._db_key(context, model))
-        attrs = self.loads(serialized)
-        model.set_attrs(self, attrs)
+        attrs = self.loads(serialized) or {}
+        model.from_plain(attrs)
 
     def _db_key(self, context, model):
         prefix = ".".join(context)
