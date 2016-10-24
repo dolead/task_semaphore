@@ -13,7 +13,7 @@ class BaseTestCase(unittest.TestCase):
         return [{'backends': ['AbstractPrioBackend'],
                  'slot_id': 'sid_1'}]
 
-    def test_aload_config(self):
+    def test_load_config(self):
         sched = Scheduler(name='test', storage=MockStorage()). \
             init_from_config(self.get_basic_config())
         assert len(sched.slots) == 1
@@ -26,18 +26,17 @@ class BaseTestCase(unittest.TestCase):
     def test_load_and_dump_config_inst(self):
         config = self.get_basic_config()
         config[0]['backends'] = [AbstractPrioBackend()]
-        sched = Scheduler().load(config)
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
         assert len(sched.slots) == 1
         assert 'sid_1' in sched.slots
         slot = sched.slots['sid_1']
         assert len(slot._backends)
         assert 'AbstractPrioBackend' in slot._backends
-        assert self.get_basic_config() == sched.dump()
 
     def test_all_backends_are_polled(self):
         config = [{'backends': ['ExampleScheduleEmptyBackend',
                                'ExampleScheduleBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
                   'slot_id': 'sid_1'}]
         sched = Scheduler(name='test', storage=MockStorage()). \
             init_from_config(config)
@@ -58,14 +57,13 @@ class BaseTestCase(unittest.TestCase):
         assert slot.current_task_id == 'SELECTED_TASK_ID_1'
 
     def test_stop_polling_after_a_backend_responded(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleScheduleBackend',
+        config = [{'backends': ['ExampleScheduleBackend',
                                'ExampleScheduleEmptyBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
-                  'slot_id': 'sid_1'}])
+                  'slot_id': 'sid_1'}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
         sched.schedule()
         slot = sched.slots['sid_1']
-        assert isinstance(slot, ExampleScheduleBackend)
         backends = [slot._backends[bk_name]
                     for bk_name in slot._backends_names]
         assert isinstance(backends[0], ExampleScheduleBackend)
@@ -81,9 +79,7 @@ class BaseTestCase(unittest.TestCase):
     def test_multiple_slots(self):
         sched = self._scheduler_with_multiple_slots()
         sched.schedule()
-        import ipdb; ipdb.set_trace()
         slot = sched.slots['sid_1']
-        assert isinstance(slot, ExampleScheduleBackend)
         backends = [slot._backends[bk_name]
                     for bk_name in slot._backends_names]
         assert isinstance(backends[0], ExampleScheduleBackend)
@@ -97,13 +93,12 @@ class BaseTestCase(unittest.TestCase):
         assert slot.current_task_id == 'SELECTED_TASK_ID_1'
 
     def test_schedule_nothing_to_do(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleScheduleEmptyBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
-                  'slot_id': 'sid_1'}])
+        config = [{'backends': ['ExampleScheduleEmptyBackend'],
+                  'slot_id': 'sid_1'}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
         sched.schedule()
         slot = sched.slots['sid_1']
-        assert isinstance(slot, ExampleScheduleBackend)
         backends = [slot._backends[bk_name]
                     for bk_name in slot._backends_names]
         assert isinstance(backends[0], ExampleScheduleEmptyBackend)
@@ -113,11 +108,11 @@ class BaseTestCase(unittest.TestCase):
         assert slot.current_task_id is None
 
     def test_stop(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleScheduleBackend',
+        config = [{'backends': ['ExampleScheduleBackend',
                                'ExampleScheduleEmptyBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
-                  'slot_id': 'sid_1'}])
+                  'slot_id': 'sid_1'}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
         sched.schedule()
         slot = sched.slots['sid_1']
         assert slot.current_task_id == 'SELECTED_TASK_ID_1'
@@ -132,11 +127,11 @@ class BaseTestCase(unittest.TestCase):
         assert slot._backends['ExampleScheduleBackend'].stopped == 1
 
     def test_keepalive(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleScheduleBackend',
-                               'ExampleScheduleEmptyBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
-                  'slot_id': 'sid_1'}])
+        config = [{'backends': ['ExampleScheduleEmptyBackend',
+                                'ExampleScheduleBackend'],
+                   'slot_id': 'sid_1'}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
         sched.schedule()
         slot = sched.slots['sid_1']
         assert slot.current_task_id == 'SELECTED_TASK_ID_1'
@@ -150,12 +145,12 @@ class BaseTestCase(unittest.TestCase):
         assert slot._backends['ExampleScheduleBackend'].keptalive == 2
 
     def test_timeout(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleScheduleBackend',
-                               'ExampleScheduleEmptyBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
+        config = [{'backends': ['ExampleScheduleBackend',
+                                'ExampleScheduleEmptyBackend'],
                   'slot_id': 'sid_1',
-                  'slot_kwargs': {'timeout_after': 1 / 120}}])  # 1/2 second
+                  'slot_kwargs': {'timeout_after': 1 / 120}}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
 
         sched.schedule()
         slot = sched.slots['sid_1']
@@ -184,10 +179,10 @@ class BaseTestCase(unittest.TestCase):
         assert slot.last_keepalive_at > keepalive
 
     def test_start_error_handling(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleStartRaisingBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
-                  'slot_id': 'sid_1'}])
+        config = [{'backends': ['ExampleStartRaisingBackend'],
+                  'slot_id': 'sid_1'}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
         sched.schedule()
         slot = sched.slots['sid_1']
         backend = next(backend for backend in slot._backends.values())
@@ -199,10 +194,10 @@ class BaseTestCase(unittest.TestCase):
         assert slot.current_task_id is None
 
     def test_keepalive_error_handling(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleKeepaliveRaisingBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
-                  'slot_id': 'sid_1'}])
+        config = [{'backends': ['ExampleKeepaliveRaisingBackend'],
+                  'slot_id': 'sid_1'}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
         sched.schedule()
         slot = sched.slots['sid_1']
         backend = next(backend for backend in slot._backends.values())
@@ -221,10 +216,10 @@ class BaseTestCase(unittest.TestCase):
         assert slot.current_task_id == 'SELECTED_TASK_ID_1'
 
     def test_keepalive_no_tolerance_error_handling(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleRaisingNoToleranceBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
-                  'slot_id': 'sid_1'}])
+        config = [{'backends': ['ExampleRaisingNoToleranceBackend'],
+                  'slot_id': 'sid_1'}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
         sched.schedule()
         slot = sched.slots['sid_1']
         backend = next(backend for backend in slot._backends.values())
@@ -243,10 +238,10 @@ class BaseTestCase(unittest.TestCase):
         assert slot.current_task_id is None
 
     def test_start_double_error_handling(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleDoubleRaisingBackend'],
-                  'slot_cls': 'ExampleScheduleSlot',
-                  'slot_id': 'sid_1'}])
+        config = [{'backends': ['ExampleDoubleRaisingBackend'],
+                  'slot_id': 'sid_1'}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
         sched.schedule()
         slot = sched.slots['sid_1']
         backend = next(backend for backend in slot._backends.values())
@@ -278,11 +273,9 @@ class BaseTestCase(unittest.TestCase):
     def _scheduler_with_multiple_slots(self):
         config = [{'backends': ['ExampleScheduleBackend',
                                 'ExampleScheduleEmptyBackend'],
-                   'slot_cls': 'ExampleScheduleSlot',
                    'slot_id': 'sid_1'},
                   {'backends': ['ExampleScheduleEmptyBackend',
                                 'ExampleScheduleBackend'],
-                   'slot_cls': 'ExampleScheduleSlot',
                    'slot_id': 'sid_2'}
                   ]
         return Scheduler(name='test', storage=MockStorage()). \

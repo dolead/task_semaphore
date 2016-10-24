@@ -24,7 +24,8 @@ class Scheduler:
         # TODO: config should be auto-loaded from db
         self.config = config
         for slot in config:
-            self.add_slot(slot['slot_id'], slot['backends'])
+            self.add_slot(slot['slot_id'], slot['backends'],
+                          slot.get('slot_kwargs'))
         return self
 
     def schedule(self):
@@ -60,10 +61,12 @@ class Scheduler:
     def stop(self, task_id):
         self._transmit_to_slot('stop', task_id)
 
-    def add_slot(self, id_, backends=None):
+    def add_slot(self, id_, backends=None, slot_kwargs=None):
         assert id_ not in self.slots, \
                 "TaskSemaphore: slot with id %r already registered!" % id_
-        self.slots[id_] = AbstractSlot(id_=id_, scheduler=self)
+        if not slot_kwargs:
+            slot_kwargs = {}
+        self.slots[id_] = AbstractSlot(id_=id_, scheduler=self, **slot_kwargs)
         for backend in backends:
             self.slots[id_].add_backend(backend)
 
