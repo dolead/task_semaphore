@@ -2,20 +2,20 @@ import logging
 from datetime import datetime, timedelta
 
 from ..exceptions import TaskTimeoutError, WrongTaskIdError
-from ..registry import REGISTRY, TaskSemaphoreMetaRegisterer
+from ..registry import REGISTRY
 from .prio_backend import AbstractPrioBackend
 from ..utils.plainattrs import PlainAttrs
 
 logger = logging.getLogger(__name__)
 
 
-class AbstractSlot(metaclass=TaskSemaphoreMetaRegisterer, PlainAttrs):
+class AbstractSlot(PlainAttrs):
 
     scheduler = None
 
-    KEYS_TO_SERIALIZE = ('current_task_id',
-                         'backends_names', 'current_backend_name',
-                         'started_at', 'last_keepalive_at')
+    KEYS_TO_SERIALIZE = ('_current_task_id',
+                         '_backends_names', '_current_backend_name',
+                         '_started_at', '_last_keepalive_at')
 
     def __init__(self, id_, scheduler, backends=None, timeout_after=60):
         self.id_ = id_
@@ -150,11 +150,15 @@ class AbstractSlot(metaclass=TaskSemaphoreMetaRegisterer, PlainAttrs):
         self._free_slot()
 
     @property
+    def storage(self):
+        return self.scheduler.storage
+
+    @property
     def _storage_context(self):
         return [self.scheduler.id_, "slot", self.id_]
 
-    def save(self):  # pragma: no cover
+    def save(self):
         self.storage.save(self._storage_context, self)
 
-    def reload(self):  # pragma: no cover
+    def reload(self):
         self.storage.reload(self._storage_context, self)

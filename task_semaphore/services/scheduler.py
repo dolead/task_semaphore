@@ -1,6 +1,6 @@
 import logging
 
-from task_semaphore import AbstractSlot
+from .slot import AbstractSlot
 from ..exceptions import TaskTimeoutError, WrongTaskIdError
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ class Scheduler:
         self.config = config
         for slot in config:
             self.add_slot(slot['slot_id'], slot['backends'])
+        return self
 
     def schedule(self):
         """ Schedules new tasks for available slots """
@@ -65,3 +66,20 @@ class Scheduler:
         self.slots[id_] = AbstractSlot(id_=id_, scheduler=self)
         for backend in backends:
             self.slots[id_].add_backend(backend)
+
+    @property
+    def _all_backends(self):
+        uniq_backends = {}
+        for slot in self.slots.values():
+            for backend_id, backend in slot._backends.items():
+                uniq_backends[backend.get_name()] = backend
+        return uniq_backends
+
+    def inspect(self):
+        # TODO: more generic plainify
+        return {
+            'slots': {slot_id: slot.to_plain()
+                      for slot_id, slot in self.slots.items()},
+            'backends': {backend_id: backend.inspect()
+                         for backend_id, backend in self._all_backends.items()}
+        }

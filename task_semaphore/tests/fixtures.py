@@ -1,11 +1,12 @@
-from .. import AbstractPrioBackend, AbstractSlot
+from .. import AbstractPrioBackend
+from ..utils.storage import AbstractStorage
 
 
-class ExampleScheduleBackend(AbstractSlot):
-    def save(self):
+class MockStorage(AbstractStorage):
+    def save(self, context, model):
         pass
 
-    def reload(self):
+    def reload(self, context, model):
         pass
 
 

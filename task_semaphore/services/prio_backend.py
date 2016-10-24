@@ -1,9 +1,11 @@
 import logging
 
+from ..registry import TaskSemaphoreMetaRegisterer
+
 logger = logging.getLogger(__name__)
 
 
-class AbstractPrioBackend:
+class AbstractPrioBackend(metaclass=TaskSemaphoreMetaRegisterer):
     """Logic to priorize the next task to be executed"""
 
     @classmethod
@@ -54,3 +56,6 @@ class AbstractPrioBackend:
         If backend_error_callback raise a error, the slot will be freed.
         """
         return False
+
+    def inspect(self):
+        return {}

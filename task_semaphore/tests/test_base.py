@@ -1,25 +1,27 @@
 import time
 import unittest
 
+from ..services.slot import AbstractSlot
 from .. import AbstractPrioBackend, Scheduler
-from .fixtures import (ExampleScheduleBackend, ExampleScheduleEmptyBackend,
-                       ExampleScheduleBackend)
+from .fixtures import (ExampleScheduleEmptyBackend,
+                       ExampleScheduleBackend, MockStorage)
 
 
 class BaseTestCase(unittest.TestCase):
 
     def get_basic_config(self):
-        return [{'backends': ['AbstractBackend'],
+        return [{'backends': ['AbstractPrioBackend'],
                  'slot_id': 'sid_1'}]
 
-    def test_load_and_dump_config(self):
-        sched = Scheduler(storage='RedisStorage').load(self.get_basic_config())
+    def test_aload_config(self):
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(self.get_basic_config())
         assert len(sched.slots) == 1
+
         assert 'sid_1' in sched.slots
         slot = sched.slots['sid_1']
         assert len(slot._backends)
-        assert 'AbstractBackend' in slot._backends
-        assert self.get_basic_config() == sched.dump()
+        assert 'AbstractPrioBackend' in slot._backends
 
     def test_load_and_dump_config_inst(self):
         config = self.get_basic_config()
@@ -29,19 +31,20 @@ class BaseTestCase(unittest.TestCase):
         assert 'sid_1' in sched.slots
         slot = sched.slots['sid_1']
         assert len(slot._backends)
-        assert 'AbstractBackend' in slot._backends
+        assert 'AbstractPrioBackend' in slot._backends
         assert self.get_basic_config() == sched.dump()
 
     def test_all_backends_are_polled(self):
-        sched = Scheduler().load(
-                [{'backends': ['ExampleScheduleEmptyBackend',
+        config = [{'backends': ['ExampleScheduleEmptyBackend',
                                'ExampleScheduleBackend'],
                   'slot_cls': 'ExampleScheduleSlot',
-                  'slot_id': 'sid_1'}])
+                  'slot_id': 'sid_1'}]
+        sched = Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)
 
         sched.schedule()
         slot = sched.slots['sid_1']
-        assert isinstance(slot, ExampleScheduleBackend)
+        assert isinstance(slot, AbstractSlot)
         backends = [slot._backends[bk_name]
                     for bk_name in slot._backends_names]
         assert isinstance(backends[0], ExampleScheduleEmptyBackend)
@@ -254,28 +257,33 @@ class BaseTestCase(unittest.TestCase):
         assert slot.current_backend is None
         assert slot.current_task_id is None
 
-    def test_slots_status(self):
+    def test_inspect(self):
         sched = self._scheduler_with_multiple_slots()
         sched.schedule()
 
-        slots_status = sched.slots_status()
-        import ipdb; ipdb.set_trace()
-
-    def test_backends_status(self):
-        sched = self._scheduler_with_multiple_slots()
-        sched.schedule()
-
-        backends_status = sched.backends_status()
-        import ipdb; ipdb.set_trace()
+        backends_status = sched.inspect()
+        self.assertEquals(backends_status['backends'],
+                          {'ExampleScheduleEmptyBackend': {},
+                           'ExampleScheduleBackend': {}})
+        self.assertEquals(set(backends_status['slots'].keys()),
+                          {'sid_1', 'sid_2'})
+        sid_1 = backends_status['slots']['sid_1']
+        self.assertEquals(sid_1['_backends_names'],
+                          ['ExampleScheduleBackend',
+                           'ExampleScheduleEmptyBackend'])
+        self.assertEquals(sid_1['_current_backend_name'],
+                          'ExampleScheduleBackend')
+        self.assertEquals(sid_1['_current_task_id'], 'SELECTED_TASK_ID_1')
 
     def _scheduler_with_multiple_slots(self):
-        return Scheduler().load(
-            [{'backends': ['ExampleScheduleBackend',
-                           'ExampleScheduleEmptyBackend'],
-              'slot_cls': 'ExampleScheduleSlot',
-              'slot_id': 'sid_1'},
-             {'backends': ['ExampleScheduleEmptyBackend',
-                           'ExampleScheduleBackend'],
-              'slot_cls': 'ExampleScheduleSlot',
-              'slot_id': 'sid_2'}
-             ])
+        config = [{'backends': ['ExampleScheduleBackend',
+                                'ExampleScheduleEmptyBackend'],
+                   'slot_cls': 'ExampleScheduleSlot',
+                   'slot_id': 'sid_1'},
+                  {'backends': ['ExampleScheduleEmptyBackend',
+                                'ExampleScheduleBackend'],
+                   'slot_cls': 'ExampleScheduleSlot',
+                   'slot_id': 'sid_2'}
+                  ]
+        return Scheduler(name='test', storage=MockStorage()). \
+            init_from_config(config)

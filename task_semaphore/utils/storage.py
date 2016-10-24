@@ -3,10 +3,10 @@ from .plainattrs import PlainAttrs
 
 
 class AbstractStorage(PlainAttrs):
-    def save(self, model):
+    def save(self, context, model):
         raise NotImplementedError()
 
-    def reload(self, model):
+    def reload(self, context, model):
         raise NotImplementedError()
 
 
