@@ -1,15 +1,16 @@
-from .. import AbstractBackend, AbstractSlot
+from .. import AbstractPrioBackend
+from ..utils.storage import AbstractStorage
 
 
-class ExampleScheduleSlot(AbstractSlot):
-    def write(self):
+class MockStorage(AbstractStorage):
+    def save(self, model):
         pass
 
-    def read(self):
+    def reload(self, model):
         pass
 
 
-class ExampleBackend(AbstractBackend):
+class ExampleBackend(AbstractPrioBackend):
     def __init__(self):
         self.polled, self.started, self.stopped = 0, 0, 0
         self.timeouted, self.keptalive, self.error_handled = 0, 0, 0

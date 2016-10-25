@@ -1,5 +1,4 @@
 from .scheduler import Scheduler
-from .slot import AbstractSlot, RedisSlot
-from .backend import AbstractBackend
+from .prio_backend import AbstractPrioBackend
 
-__all__ = ['Scheduler', 'AbstractSlot', 'RedisSlot', 'AbstractBackend']
+__all__ = ['Scheduler', 'AbstractSlot', 'AbstractPrioBackend']

@@ -2,6 +2,9 @@ language: python
 python:
     - "3.4"
 
+services:
+    - redis-server
+
 cache:
   directories:
     - $HOME/.cache/pip
@@ -9,7 +12,7 @@ before_cache:
   - rm -f $HOME/.cache/pip/log/debug.log
 
 install:
-  - pip install pytest pytest-pep8 pytest-mccabe pytest-isort pytest-cov --upgrade
+  - pip install pytest pytest-pep8 pytest-mccabe pytest-isort pytest-cov redis --upgrade
 
 script:
   - py.test --isort --mccabe --pep8 --cov=task_semaphore --cache-clear task_semaphore/tests/test_*
