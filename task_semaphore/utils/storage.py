@@ -1,38 +1,13 @@
 import pickle
-import time
-from datetime import datetime, timedelta
 
 from .plainattrs import PlainAttrs
-
-
-class AbstractLock:
-
-    def __enter__(self):
-        start = datetime.now()
-        while self.is_locked():
-            if datetime.now() - start > self.max_lock_wait:
-                raise TimeoutError('waited to long for lock')
-            time.sleep(2)
-        self.lock()
-
-    def __exit__(self, type, value, traceback):
-        self.unlock()
-
-    def is_locked(self):
-        pass
-
-    def lock(self):
-        pass
-
-    def unlock(self):
-        pass
+from .lock import AbstractLock, RedisLock
 
 
 class AbstractStorage(PlainAttrs):
 
     def __init__(self, scheduler=None):
         self.scheduler = scheduler
-        self.max_lock_wait = timedelta(minutes=1)
 
     def lock_on(self, model):
         return AbstractLock()
@@ -53,22 +28,6 @@ class PickleSerializer:
     def loads(self, attrs_s):
         """From string"""
         return pickle.loads(attrs_s) if attrs_s else None
-
-
-class RedisLock(AbstractLock):
-
-    def __init__(self, redis_c, lock_key):
-        self.redis_c = redis_c
-        self.lock_key = lock_key
-
-    def is_locked(self):
-        return self.redis_c.get(self.lock_key)
-
-    def lock(self):
-        self.redis_c.set(self.lock_key, 'IS_LOCKED', 5 * 60)  # lock for 5 min
-
-    def unlock(self):
-        return self.redis_c.delete(self.lock_key)
 
 
 class RedisStorage(AbstractStorage, PickleSerializer):
