@@ -1,4 +1,5 @@
 [![Build Status](https://travis-ci.org/dolead/task_semaphore.svg?branch=master)](https://travis-ci.org/dolead/task_semaphore)
+[![Code Climate](https://codeclimate.com/github/dolead/task_semaphore/badges/gpa.svg)](https://codeclimate.com/github/dolead/task_semaphore)
 
 # Dolead Task Semaphores
 
