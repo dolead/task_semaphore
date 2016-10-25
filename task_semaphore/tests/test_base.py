@@ -1,10 +1,10 @@
 import time
 import unittest
 
-from ..services.slot import AbstractSlot
 from .. import AbstractPrioBackend, Scheduler
-from .fixtures import (ExampleScheduleEmptyBackend,
-                       ExampleScheduleBackend, MockStorage)
+from ..services.slot import AbstractSlot
+from .fixtures import (ExampleScheduleBackend, ExampleScheduleEmptyBackend,
+                       MockStorage)
 
 
 class BaseTestCase(unittest.TestCase):
@@ -37,7 +37,7 @@ class BaseTestCase(unittest.TestCase):
 
     def test_all_backends_are_polled(self):
         config = [{'backends': ['ExampleScheduleEmptyBackend',
-                               'ExampleScheduleBackend'],
+                                'ExampleScheduleBackend'],
                   'slot_id': 'sid_1'}]
         sched = Scheduler(name='test', storage=MockStorage()). \
             init_from_config(config)
@@ -59,7 +59,7 @@ class BaseTestCase(unittest.TestCase):
 
     def test_stop_polling_after_a_backend_responded(self):
         config = [{'backends': ['ExampleScheduleBackend',
-                               'ExampleScheduleEmptyBackend'],
+                                'ExampleScheduleEmptyBackend'],
                   'slot_id': 'sid_1'}]
         sched = Scheduler(name='test', storage=MockStorage()). \
             init_from_config(config)
@@ -110,7 +110,7 @@ class BaseTestCase(unittest.TestCase):
 
     def test_stop(self):
         config = [{'backends': ['ExampleScheduleBackend',
-                               'ExampleScheduleEmptyBackend'],
+                                'ExampleScheduleEmptyBackend'],
                   'slot_id': 'sid_1'}]
         sched = Scheduler(name='test', storage=MockStorage()). \
             init_from_config(config)
@@ -148,8 +148,8 @@ class BaseTestCase(unittest.TestCase):
     def test_timeout(self):
         config = [{'backends': ['ExampleScheduleBackend',
                                 'ExampleScheduleEmptyBackend'],
-                  'slot_id': 'sid_1',
-                  'slot_kwargs': {'timeout_after': 1 / 120}}]
+                   'slot_id': 'sid_1',
+                   'slot_kwargs': {'timeout_after': 1 / 120}}]
         sched = Scheduler(name='test', storage=MockStorage()). \
             init_from_config(config)
 

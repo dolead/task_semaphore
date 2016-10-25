@@ -1,12 +1,10 @@
-import time
 import unittest
 
 import redis
 
-from ..utils.storage import RedisStorage
 from .. import Scheduler
-from .fixtures import (ExampleScheduleEmptyBackend,
-                       ExampleScheduleBackend)
+from ..utils.storage import RedisStorage
+from .fixtures import ExampleScheduleBackend, ExampleScheduleEmptyBackend
 
 
 class StorageTstMixin:
@@ -19,7 +17,7 @@ class StorageTstMixin:
         config = [{'backends': ['ExampleScheduleBackend',
                                 'ExampleScheduleEmptyBackend'],
                    'slot_id': 'sid_1'}]
-        sched_before = Scheduler(name='test', storage=self._storage()). \
+        sched_before = Scheduler(name='test', storage=self._storage()).\
             init_from_config(config)
         slot = sched_before.slots['sid_1']
         assert slot.current_backend is None
@@ -29,7 +27,7 @@ class StorageTstMixin:
 
         sched_before.schedule()
 
-        sched = Scheduler(name='test', storage=self._storage()). \
+        sched = Scheduler(name='test', storage=self._storage()).\
             init_from_config(config)
         slot = sched.slots['sid_1']
         backends = [slot._backends[bk_name]

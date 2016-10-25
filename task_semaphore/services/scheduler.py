@@ -1,7 +1,7 @@
 import logging
 
-from .slot import AbstractSlot
 from ..exceptions import TaskTimeoutError, WrongTaskIdError
+from .slot import AbstractSlot
 
 logger = logging.getLogger(__name__)
 
@@ -32,28 +32,30 @@ class Scheduler:
 
     def schedule(self):
         """ Schedules new tasks for available slots """
-        logger.info('starting reviewing slots for scheduling')
-        for slot in self.slots.values():
-            slot.reload()
-            if slot.current_task_id:
-                logger.debug('slot %s is busy', slot)
-                try:
-                    slot.timeout_if_late(slot.current_task_id)
-                except TaskTimeoutError:
-                    slot.stop(slot.current_task_id)
-                else:  # if not timeouted
-                    continue
-            task_id, backend = slot.poll()
-            if task_id is not None:
-                slot.start(task_id, backend)
-            else:
-                logger.debug('nothing to do for slot %r', slot)
+        with self.storage.lock_on(self):
+            logger.info('starting reviewing slots for scheduling')
+            for slot in self.slots.values():
+                slot.reload()
+                if slot.current_task_id:
+                    logger.debug('slot %s is busy', slot)
+                    try:
+                        slot.timeout_if_late(slot.current_task_id)
+                    except TaskTimeoutError:
+                        slot.stop(slot.current_task_id)
+                    else:  # if not timeouted
+                        continue
+                task_id, backend = slot.poll()
+                if task_id is not None:
+                    slot.start(task_id, backend)
+                else:
+                    logger.debug('nothing to do for slot %r', slot)
 
     def _transmit_to_slot(self, method, task_id):
-        for slot in self.slots.values():
-            if slot.current_task_id == task_id:
-                logger.debug('passing %r to %r(%r)', method, slot, task_id)
-                return getattr(slot, method)(task_id)
+        with self.storage.lock_on(self):
+            for slot in self.slots.values():
+                if slot.current_task_id == task_id:
+                    logger.debug('passing %r to %r(%r)', method, slot, task_id)
+                    return getattr(slot, method)(task_id)
         raise WrongTaskIdError(self, task_id)
 
     def keepalive(self, task_id):
@@ -99,3 +101,7 @@ class Scheduler:
             'backends': {backend_id: backend.inspect()
                          for backend_id, backend in self._all_backends.items()}
         }
+
+    @property
+    def _storage_key(self):
+        return "scheduler", str(self.id_)

@@ -3,21 +3,20 @@ from datetime import datetime, timedelta
 
 from ..exceptions import TaskTimeoutError, WrongTaskIdError
 from ..registry import REGISTRY
-from .prio_backend import AbstractPrioBackend
 from ..utils.plainattrs import PlainAttrs
+from .prio_backend import AbstractPrioBackend
 
 logger = logging.getLogger(__name__)
+DEFAULT_SLOT_TIMEOUT = 60 * 8  # EIGHT HOURS
 
 
 class AbstractSlot(PlainAttrs):
-
-    scheduler = None
-
     KEYS_TO_SERIALIZE = ('_current_task_id',
                          '_backends_names', '_current_backend_name',
                          '_started_at', '_last_keepalive_at')
 
-    def __init__(self, id_, scheduler, backends=None, timeout_after=60):
+    def __init__(self, id_, scheduler, backends=None,
+                 timeout_after=DEFAULT_SLOT_TIMEOUT):
         self.id_ = id_
         self.scheduler = scheduler
         self.timeout_after = timedelta(minutes=timeout_after)
@@ -189,11 +188,11 @@ class AbstractSlot(PlainAttrs):
         return self.scheduler.storage
 
     @property
-    def _storage_context(self):
-        return [self.scheduler.id_, "slot", self.id_]
+    def _storage_key(self):
+        return self.scheduler._storage_key + ("slot", str(self.id_))
 
     def save(self):
-        self.storage.save(self._storage_context, self)
+        self.storage.save(self)
 
     def reload(self):
-        self.storage.reload(self._storage_context, self)
+        self.storage.reload(self)

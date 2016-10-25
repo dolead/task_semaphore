@@ -3,10 +3,10 @@ from ..utils.storage import AbstractStorage
 
 
 class MockStorage(AbstractStorage):
-    def save(self, context, model):
+    def save(self, model):
         pass
 
-    def reload(self, context, model):
+    def reload(self, model):
         pass
 
 
