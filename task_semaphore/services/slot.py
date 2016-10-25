@@ -41,6 +41,9 @@ class AbstractSlot(PlainAttrs):
         return cls.__name__
 
     def add_backend(self, backend):
+        """Add a single backend. backend can be either the name of a registered
+        backend or directly an instance of backend.
+        """
         if isinstance(backend, str):
             assert backend in REGISTRY, \
                     "TaskSemaphore: %r is not a registered backend!" % backend
@@ -56,6 +59,12 @@ class AbstractSlot(PlainAttrs):
         return "<%s id=%r>" % (self.get_name(), self.id_)
 
     def poll(self):
+        """ Will poll each associated backend in the order they've been added.
+        Will stop after the first task id retrieved this way.
+
+        The task id must be unique across all the backends of a single
+        scheduler.
+        """
         logger.info('polling for slot %r', self)
         for backend_name in self._backends_names:
             task_id = self._backends[backend_name].poll()
@@ -84,6 +93,13 @@ class AbstractSlot(PlainAttrs):
         return self._last_keepalive_at
 
     def backend_method_wrapper(self, method):
+        """ `method` being the name of a backend method, will call that method
+        and wrap it so it triggers that backend `backend_error_callback` if the
+        method raises something.
+
+        If the error handling callback also raises something, it'll be ignored.
+        See `AbstractBackend.backend_error_callback`.
+        """
         try:
             return getattr(self.current_backend, method)(self.current_task_id)
 
@@ -124,15 +140,25 @@ class AbstractSlot(PlainAttrs):
         """
         if self.current_task_id != unique_task_id:
             raise WrongTaskIdError(self, unique_task_id)
+        logger.debug('bumping keepalive %r(%s)', self, unique_task_id)
         self._last_keepalive_at = datetime.utcnow()
         self.backend_method_wrapper('keepalive_callback')
         self.save()
 
     def start(self, unique_task_id, backend):
+        """Will start the task with `unique_task_id`, meaning, will make so
+        this slot isn't free anymore.
+
+        Will set `started_at` and `last_keepalive_at` to now. Will set the
+        `current_backend` and `current_task` to the value passed in the args.
+
+        Will call the backend's `start_callback`.
+        """
         self._current_task_id = unique_task_id
         self._current_backend_name = backend.get_name()
         self._started_at = datetime.utcnow()
         self._last_keepalive_at = datetime.utcnow()
+        logger.warn('starting %r(%s)', self, unique_task_id)
         self.backend_method_wrapper('start_callback')
         self.save()
 
@@ -144,8 +170,17 @@ class AbstractSlot(PlainAttrs):
         self.save()
 
     def stop(self, unique_task_id):
+        """Will stop the task with `unique_task_id`, meaning, will make so
+        this slot is free.
+
+        Will set `started_at` and `last_keepalive_at`, `current_backend` and
+        `current_task` to None.
+
+        Will call the backend's `stop_callback`.
+        """
         if self.current_task_id != unique_task_id:
             raise WrongTaskIdError(self, unique_task_id)
+        logger.warn('stopping %r(%s)', self, unique_task_id)
         self.backend_method_wrapper('stop_callback')
         self._free_slot()
 

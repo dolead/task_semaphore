@@ -52,6 +52,7 @@ class Scheduler:
     def _transmit_to_slot(self, method, task_id):
         for slot in self.slots.values():
             if slot.current_task_id == task_id:
+                logger.debug('passing %r to %r(%r)', method, slot, task_id)
                 return getattr(slot, method)(task_id)
         raise WrongTaskIdError(self, task_id)
 
@@ -61,9 +62,18 @@ class Scheduler:
         self._transmit_to_slot('keepalive', task_id)
 
     def stop(self, task_id):
+        """Inform the scheduler that the task with task_id is finished and that
+        its slot should be freed.
+        """
         self._transmit_to_slot('stop', task_id)
 
     def add_slot(self, id_, backends=None, slot_kwargs=None):
+        """Add a single slot with an id_ that
+        hasn't been yet registered (unique).
+        `backends` must be a list of registered backends. See Slot.add_backend.
+        `slot_kwargs` are the kwargs you want to pass on to the soon to be
+        instantiated backends.
+        """
         assert id_ not in self.slots, \
                 "TaskSemaphore: slot with id %r already registered!" % id_
         if not slot_kwargs:
