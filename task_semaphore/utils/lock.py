@@ -35,7 +35,8 @@ class AbstractLock:
 
 class RedisLock(AbstractLock):
 
-    def __init__(self, redis_c, lock_key):
+    def __init__(self, redis_c, lock_key, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.redis_c = redis_c
         self.lock_key = lock_key
 
