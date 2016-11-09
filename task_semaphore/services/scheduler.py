@@ -8,10 +8,7 @@ logger = logging.getLogger(__name__)
 
 class Scheduler:
 
-    id_ = None
     config = None
-    slots = {}
-    storage = None
 
     KEYS_TO_SERIALIZE = ('config', )
 

@@ -7,9 +7,9 @@ The point of the Dolead Task semaphores is to control the number of tasks runnin
 
 ## How does it work
 
-The main entry point is the Scheduler. That's the main object that will load the configuration you'll have registered, instantiate all the objects and route external signals to them (through methods like `stop_task`, `keepalive_task`. and `schedule`. That last one should be called regularly so task can be scheduled around.
+The main entry point is the Scheduler. That's the main object that will load the configuration, register the different slots you specified and route external signals to them (through methods like `stop`, `keepalive`. and `schedule`). The last one should be called regularly so task can be scheduled around. The scheduler can have any number of slots.
 
-The number of tasks you can execute at the same time is controlled by the number of slots you decide to instantiate. The slots will register the state their in the database they're linked to. The base implementation uses Redis but you can implement your own ! Pull requests are welcome !
+The number of tasks you can execute at the same time is controlled by the number of slots you decide to instantiate. The slots will register the state their in the storage they're linked to. The base implementation uses Redis but you can implement your own! Pull requests are welcome!
 
 A slot can have any number of backends from which they'll retrieved a task to start. They do so by calling on the `poll` method of the backend, and if that methods returns `None`, the backend is considered as having nothing to do and the slot will poll the next one for a task.
 The backend is the only object you'll have to override to use this module. Here's an example :
