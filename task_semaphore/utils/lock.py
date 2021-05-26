@@ -13,9 +13,9 @@ class AbstractLock:
         self.max_lock_wait = timedelta(minutes=max_wait)
 
     def __enter__(self):
-        start = datetime.now()
+        start = datetime.utcnow()
         while self.is_locked():
-            if datetime.now() - start > self.max_lock_wait:
+            if datetime.utcnow() - start > self.max_lock_wait:
                 raise TimeoutError('waited to long for lock')
             time.sleep(self.wait_for)
         self.lock()
