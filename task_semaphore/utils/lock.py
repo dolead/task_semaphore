@@ -1,5 +1,5 @@
 import time
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 DEFAULT_MAX_WAIT = 5  # in minutes
 DEFAULT_LOCK_LOOP_WAIT_TIME = 2  # in seconds
@@ -13,14 +13,14 @@ class AbstractLock:
         self.max_lock_wait = timedelta(minutes=max_wait)
 
     def __enter__(self):
-        start = datetime.utcnow()
+        start = datetime.now(UTC)
         while self.is_locked():
-            if datetime.utcnow() - start > self.max_lock_wait:
+            if datetime.now(UTC) - start > self.max_lock_wait:
                 raise TimeoutError('waited to long for lock')
             time.sleep(self.wait_for)
         self.lock()
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, *args, **kwargs):
         self.unlock()
 
     def is_locked(self):

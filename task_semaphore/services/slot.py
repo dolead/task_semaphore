@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 from ..exceptions import TaskTimeoutError, WrongTaskIdError
 from ..registry import REGISTRY
@@ -127,7 +127,7 @@ class AbstractSlot(PlainAttrs):
         if self.current_task_id != unique_task_id:
             raise WrongTaskIdError(self, unique_task_id)
         deadline = self._last_keepalive_at + self.timeout_after
-        if deadline < datetime.utcnow():
+        if deadline < datetime.now(UTC).replace(tzinfo=None):
             logger.warn('Deadline was %s (last keep alive on %s) for %s. '
                         'Timeouting', deadline, self._last_keepalive_at, self)
             self.backend_method_wrapper('timeout_callback')
@@ -140,7 +140,7 @@ class AbstractSlot(PlainAttrs):
         if self.current_task_id != unique_task_id:
             raise WrongTaskIdError(self, unique_task_id)
         logger.debug('bumping keepalive %r(%s)', self, unique_task_id)
-        self._last_keepalive_at = datetime.utcnow()
+        self._last_keepalive_at = datetime.now(UTC).replace(tzinfo=None)
         self.backend_method_wrapper('keepalive_callback')
         self.save()
 
@@ -155,8 +155,8 @@ class AbstractSlot(PlainAttrs):
         """
         self._current_task_id = unique_task_id
         self._current_backend_name = backend.get_name()
-        self._started_at = datetime.utcnow()
-        self._last_keepalive_at = datetime.utcnow()
+        self._started_at = datetime.now(UTC).replace(tzinfo=None)
+        self._last_keepalive_at = datetime.now(UTC).replace(tzinfo=None)
         logger.warn('starting %r(%s)', self, unique_task_id)
         self.backend_method_wrapper('start_callback')
         self.save()
